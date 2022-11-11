@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css?family=M+PLUS+Rounded+1c" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100&family=Zen+Kurenaido&display=swap"
+        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nothing+You+Could+Do&family=Noto+Sans+JP:wght@100&family=Zen+Kurenaido&display=swap"
+        rel="stylesheet">
+    <title>連歌App</title>
+</head>
+
+<body>
+    <h1>Renga</h1>
+
+    <main>
+        <div class="main">
+            <!-- 入力場所を作成しよう -->
+            <div class="firstform_wrapper">
+                <div class="firstform_wrapper_inside"></div>
+                <form>
+                    <fieldset>
+                        <div>
+                            <li>name: </li>
+                            <li><input type="text" id="name" class="input">
+                            </li>
+                        </div>
+
+                        <div>
+                            <li>phrase: </li>
+                            <li><input type="text" id="phrase" class="input">
+                            </li>
+                        </div>
+
+                        <div>
+                            <li>comment: </li>
+                            <li><input type="text" id="comment" class="input"></li>
+                        </div>
+
+                        <div class="button">
+                            <button type="button" id="send">send</button>
+                        </div>
+                    </fieldset>
+                </form>
+            </div>
+
+            <!-- データ出力場所 -->
+            <div class="firstpost_wrapper"></div>
+            <div class="replyform_wrapper"></div>
+
+
+        </div>
+
+
+
+    </main>
+
+    <!-- <div>
+        <p>やることリスト（あとで消して）</p>
+        <ul>
+            <li>ボタンクリックしてからじゃないと過去投稿が表示されないの直して（＝ページ読み込み時点で過去投稿表示される様にして）</li>
+            <li>secondsのエラーは無視して</li>
+            <li>子要素が表示されない（addDocまではうまくいってる）</li>
+        </ul>
+    </div> -->
+
+
+
+    <!-- JavaScriptゾーンここから -->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        // 日時をいい感じの形式にする関数
+        function convertTimestampToDatetime(timestamp) {
+            const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+            const Y = _d.getFullYear();
+            const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+            const d = _d.getDate().toString().padStart(2, '0');
+            const H = _d.getHours().toString().padStart(2, '0');
+            const i = _d.getMinutes().toString().padStart(2, '0');
+            const s = _d.getSeconds().toString().padStart(2, '0');
+            return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+        }
+    </script>
+
+
+
+    <!-- 以下にfirebaseのコードを貼り付けよう -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            serverTimestamp,
+            onSnapshot,
+            orderBy,
+            query
+        } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfUIT5OnuwDz3qRdu8w_FY0JeYR7kj_o8",
+            authDomain: "chat-homework-bec24.firebaseapp.com",
+            projectId: "chat-homework-bec24",
+            storageBucket: "chat-homework-bec24.appspot.com",
+            messagingSenderId: "301135684176",
+            appId: "1:301135684176:web:14f9cf14c79ec967546755"
+        };
+
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // <!-- コード貼り付けここまで -->
+
+        // ページ読み込み時にやること
+        $(".firstpost_wrapper").hide();
+
+        // 親投稿送信
+        // <!-- 送信ボタンを押したときの処理 -->
+        $("#send").on("click", function () {
+            //入力内容を取得
+            $(".firstpost_wrapper").show();
+
+            const name = $("#name").val();
+            const phrase = $("#phrase").val();
+            const comment = $("#comment").val();
+
+            console.log(name);
+            console.log(phrase);
+
+            //取得した内容をオブジェクトに変換
+            const postData = {
+                name: name,
+                phrase: phrase,
+                comment: comment,
+                date: serverTimestamp(),
+            };
+
+            addDoc(collection(db, "01_firstpart"), postData);
+            //オブジェクトpostDataをFirestoreに追加
+            console.log(postData); //追加したものを確認
+
+            const q = query(collection(db, "01_firstpart"), orderBy("date", "asc"));//時系列順に並べる
+
+            onSnapshot(collection(db, "01_firstpart"), (querySnapshot) => {
+                console.log(querySnapshot);
+
+                const documentData = [];
+                querySnapshot.docs.forEach((doc) => {
+                    //documentData配列に内容を追加(オブジェクトで突っ込む)
+                    console.log(doc.data());
+
+                    const getData = {
+                        name: doc.data().name,
+                        phrase: doc.data().phrase,
+                        comment: doc.data().comment,
+
+                        date: doc.data().date,
+                    };
+                    documentData.push(getData);
+                    console.log(documentData);
+
+                    const htmlElements = [];
+                    documentData.forEach((document) => {
+                        htmlElements.push(`
+                    
+          <p>name: ${document.name}</p>
+          <p>phrase: ${document.phrase}</p>
+          <p>comment: ${document.comment}</p>
+          <p>date: ${convertTimestampToDatetime(document.date.seconds)}</p>
+            <div>
+                <button type="button" id="send2">返す</button>
+            </div>
+
+<div class="firstpost_wrapper_inside">
+              <form class="replyform_wrapper">
+        <fieldset>
+            <legend>下の句投稿</legend>
+
+            <div>
+                phrase: <input type="text" id="phrase2"  class="input">
+            </div>
+
+            <div>
+                comment: <input type="text" id="comment2"  class="input">
+            </div>
+        </fieldset>
+    </form>
+    </div>
+          `);
+
+
+                        console.log(htmlElements);
+                        $(".firstpost_wrapper").html(htmlElements);
+                    });
+                });
+
+
+                // 親投稿送信ここまで
+
+                // 
+                //返信フォームに入力された情報を受け取ってFirebaseに保存する
+                $("#send2").on("click", function () {
+                    //入力内容を取得
+                    const phrase2 = $("#phrase2").val();
+                    const comment2 = $("#comment2").val();
+
+                    console.log(name2);
+                    console.log(phrase2);
+
+                    //取得した内容をオブジェクトに変換
+                    const postData2 = {
+                        name2: name2,
+                        phrase2: phrase2,
+                        comment2: comment2,
+                        date: serverTimestamp(),
+                    };
+
+                    addDoc(collection(db, "02_secondpart"), postData2);
+                    //オブジェクトpostDataをFirestoreに追加
+                    console.log(postData2); //追加したものを確認
+
+                    const q = query(collection(db, "02_secondpart"), orderBy("date", "desc"));//時系列順に並べる
+
+                    onSnapshot(collection(db, "02_secondpart"), (querySnapshot) => {
+                        console.log(querySnapshot);
+
+                        const documentData2 = [];
+                        querySnapshot.docs.forEach((doc) => {
+                            //documentData配列に内容を追加(オブジェクトで突っ込む)
+                            console.log(doc.data());//ここまで取れてる
+
+                            const getData2 = {
+                                name: doc.data().name2,
+                                phrase: doc.data().phrase2,
+                                comment: doc.data().comment2,
+
+                                date: doc.data().date,
+                            };
+                            documentData.push(getData2);
+
+                            const htmlElements2 = [];
+                            documentData.forEach((document) => {
+                                htmlElements2.push(`
+                    
+          <p>name: ${document.name2}</p>
+          <p>phrase: ${document.phrase2}</p>
+          <p>comment: ${document.comment2}</p>
+          <p>date: ${convertTimestampToDatetime(document.date.seconds)}
+          </p>
+
+          `);
+                            });
+
+
+                            console.log(htmlElements2);
+                            $(".replyform_wrapper").html(htmlElements2);
+                        });
+                    });
+
+
+
+
+                });
+            });
+        });
+
+
+
+
+
+    </script>
+</body>

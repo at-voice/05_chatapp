@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>index2_課題チャットアプリ</title>
+
+</head>
+
+<body>
+    <h1>index2_realtime chat</h1>
+    <!-- 入力場所を作成しよう -->
+    <form>
+        <fieldset>
+            <legend>チャット入力画面</legend>
+            <div>
+                name: <input type="text" id="name">
+            </div>
+            <div>
+                phrase: <input type="text" id="phrase">
+            </div>
+            <div>
+                comment: <input type="text" id="comment">
+            </div>
+            <div>
+                <button type="button" id="send">send</button>
+            </div>
+        </fieldset>
+    </form>
+
+    <!-- データ出力場所 -->
+    <ul id="output"></ul>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        // 日時をいい感じの形式にする関数
+        function convertTimestampToDatetime(timestamp) {
+            const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+            const Y = _d.getFullYear();
+            const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+            const d = _d.getDate().toString().padStart(2, '0');
+            const H = _d.getHours().toString().padStart(2, '0');
+            const i = _d.getMinutes().toString().padStart(2, '0');
+            const s = _d.getSeconds().toString().padStart(2, '0');
+            return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+        }
+    </script>
+    <!-- 以下にfirebaseのコードを貼り付けよう -->
+
+    <script type="module">
+
+        // ここからfirebaseとデータのやり取りをするための準備
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
+
+        // 🔽 追加 / `9.13.0`の部分を↑のFirestoreから貼り付けたコードのバージョンに合わせる
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            serverTimestamp,
+            query,
+            orderBy,
+            onSnapshot, //firebaseが持ってる関数を引っ張ってくる
+        } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfUIT5OnuwDz3qRdu8w_FY0JeYR7kj_o8",
+            authDomain: "chat-homework-bec24.firebaseapp.com",
+            projectId: "chat-homework-bec24",
+            storageBucket: "chat-homework-bec24.appspot.com",
+            messagingSenderId: "301135684176",
+            appId: "1:301135684176:web:14f9cf14c79ec967546755"
+        };//gitHubでいう秘密鍵（SSHみたいなもの）
+
+
+        const app = initializeApp(firebaseConfig);//
+
+        // 🔽 追加 (データベースと連携するためのコード  )
+        const db = getFirestore(app);
+        // 準備ここまで firebaseが読み込みやすい様に変えたよ（Jsonみたいに）
+
+
+        // chatapp.html
+
+        $("#send").on("click", function () {
+            // 送信時に必要な処理
+
+            const firstname = $("#name").val();
+            const comment = $("#comment").val();
+            const phrase = $("#phrase").val();
+
+
+            const postData = {
+                name: firstname, //val→要素などのvalue値を取得する.nameやtextはkey.
+                comment: comment,
+                phrase: phrase,
+                time: serverTimestamp(), //★serverTimestamp→FBの仕様で現在時刻をとってくる
+            }; //postDataの定数はオブジェクト型の定数。以降出てきてもpostDataの中身はいじれない。
+            console.log(postData);
+            addDoc(collection(db, "chat"), postData); //addDoc(ランダムなIDが付与されたドキュメントの作成)、FBに登録している
+            $("#text").val(""); //#textのvalue値を取得する→#textを空にする
+            $("#name").val(""); //#nameを空にする
+        });
+
+
+
+
+        // ↓ページが読み込まれた時点で発動してるもの
+        // 【時間順に並べる】
+        // データの取得の条件を指定する（ここでは時間の新しい順に並び替え）
+        const q = query(collection(db, "chat"), orderBy("time", "desc"));//timeパートだけ見て最新順に並べ替えてって指示をFBに出して
+        // 【共通用語】query⇨timeとかnameそれぞれに入力されたものが入った箱
+        // 変数qの引数がquery以下＆orderBy
+        // orderBy→並べ替える
+        // 定数qに＝以降の処理を入れたい
+
+
+        onSnapshot(q, (querySnapshot) => { //並び替えた状態のものqを変数Aに入れてください
+            console.log(querySnapshot.docs);
+            //onSnapshot() はデータベース上でデータの変更が発生したタイミングで {} 内の処理を実行する．
+            // データ取得条件がここまで
+            // querySnapshotは勝手に決めた変数名
+            // 
+
+
+
+            // ①データ取得処理
+            // onSnapshot(collection(db, "chat"), (querySnapshot) => {
+            //   console.log(querySnapshot.docs);
+
+
+            // 上記 querySnapshot.docs は非常に複雑な形となっており，このまま扱うことは難しい．
+            // そのため，必要なデータのみ抽出した「オブジェクト形式の配列」に変換する．
+            // ②【データの取り出し】
+            const documents = []; //documents配列を作る
+            querySnapshot.docs.forEach(function (doc) { //forEach→配列に特化したループ構文 各要素を出力する
+                // querysnapshotの中のdocsの中の値だけを1件ずつforEachで出力する
+                const document = {
+                    id: doc.id, //.id でドキュメント ID（名前）を取得する． id→key doc.id→value
+                    data: doc.data(), //.data() でドキュメント中身（3 項目）を取得する．
+                }; //オブジェクト型の定数の名前をdocumentとします
+                documents.push(document);
+            });
+
+            console.log(documents);
+
+
+            // 【画面表示するためのタグ生成】
+
+            const htmlElements = [];
+            documents.forEach(function (document) {
+                htmlElements.push(`
+    <li id="${document.id}">
+      <p>${document.data.name} at ${document.data.time.seconds}</p>
+      <p>${document.data.comment}</p>
+    </li>
+  `);
+                //配列htmlElementsに(以下を入れるよ
+                // `(バッククオーテーション)で囲むと、改行が可能
+            });
+
+            console.log(htmlElements)
+
+            $("#output").html(htmlElements);
+            //配列オールを#outputに表示する
+
+
+
+
+            // 【Enterキーで送信】
+            // chatapp.html
+
+            $("#text").on("keydown", function (e) {
+                if (e.keyCode === 13) { //Enterキーは13
+                    const postData = {
+                        name: $("#name").val(),
+                        text: $("#text").val(),
+                        time: serverTimestamp(),
+                    };
+                    addDoc(collection(db, "chat"), postData);
+                    $("#text").val("");
+                }
+            });
+
+
+        });
+
+
+
+
+
+
+    </script>
+
+
+
+</body>
+
+</html>

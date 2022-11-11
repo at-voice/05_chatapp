@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>index_チャットを作る</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+
+<body>
+
+    <!-- ヘッダー -->
+
+    <!-- 投稿表示場所 -->
+    <ul id="output"></ul>
+
+
+    <!-- 新規投稿 -->
+    <form>
+        <fieldset>
+            <!-- これがあると投稿フォーム欄囲まれる -->
+            <legend>投稿画面</legend>
+            <div>
+                name: <input type="text" id="name" placeholder="小式部内侍">
+            </div>
+
+            <div>
+                phrase: <input type="text" id="phrase" placeholder="大江山いく野の道の遠ければ">
+            </div>
+
+            <div>
+                comment: <input type="text" id="comment" placeholder="母が偉大すぎるためいつも代作を疑われて殺意">
+            </div>
+
+            <div>
+                <button type="button" id="send">send</button>
+            </div>
+
+        </fieldset>
+    </form>
+
+
+
+    <!-- あとで消すやることリスト -->
+    <div>
+        <h6>やることリスト（あとで消す）</h6>
+        <ul>
+            <li>firebase関数？みたいなのが読み込めてないぽい</li>
+            <li>フォームの横幅設定</li>
+        </ul>
+    </div>
+
+
+
+    <!-- ここからJS -->
+
+    <!-- Firebaseからのコピペ -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+
+        // 🔽 追加 / `9.13.0`の部分を↑のFirestoreから貼り付けたコードのバージョンに合わせる
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            serverTimestamp,
+            query,
+            orderBy,
+            onSnapshot, //firebaseが持ってる関数を引っ張ってくる
+        } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-firestore.js";
+
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfUIT5OnuwDz3qRdu8w_FY0JeYR7kj_o8",
+            authDomain: "chat-homework-bec24.firebaseapp.com",
+            projectId: "chat-homework-bec24",
+            storageBucket: "chat-homework-bec24.appspot.com",
+            messagingSenderId: "301135684176",
+            appId: "1:301135684176:web:14f9cf14c79ec967546755"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+
+        // 🔽 追加
+        const db = getFirestore(app);//Fbが読み込みやすいように変えたよ
+        const timestamp = serverTimestamp();
+        console.log(timestamp);
+    </script>
+
+    <!--  日時をいい感じの形式にする関数 -->
+    <script>
+        function convertTimestampToDatetime(timestamp) {
+            const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+            const Y = _d.getFullYear();
+            const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+            const d = _d.getDate().toString().padStart(2, '0');
+            const H = _d.getHours().toString().padStart(2, '0');
+            const i = _d.getMinutes().toString().padStart(2, '0');
+            const s = _d.getSeconds().toString().padStart(2, '0');
+            return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+        }
+    </script>
+
+
+    <!-- 準備ここまで -->
+
+
+    <!-- 送信ボタンを押したときの動作 -->
+    <script>
+        $("#send").on("click", function () {
+            const postData = {
+                name: $("#name").val(), //key:name、value:#nameに入っているものとします
+                phrase: $("#phrase").val(),
+                comment: $("#comment").val(),
+                time: serverTimestamp(),
+            };
+            console.log(postData);
+            addDoc(collection(db, "chat"), postData);//FBに登録します ※addDoc(ランダムなIDが付与されたドキュメントの作成)
+            $("#text").val("");//#textを空にする
+            $("#comment").val("");//#commentを空にする
+
+        });
+
+
+    </script>
+
+
+
+
+
+
+
+</body>
+
+</html>

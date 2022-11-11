@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>chatApp</title>
+    <style>
+        #output li {
+            background: #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>fromひーくん</h1>
+    <!-- 入力場所を作成しよう -->
+    <form>
+        <fieldset>
+            <legend>チャット入力画面</legend>
+            <div>
+                name: <input type="text" id="name">
+            </div>
+
+            <div>
+                phrase: <input type="text" id="phrase">
+            </div>
+
+            <div>
+                comment: <input type="text" id="comment">
+            </div>
+
+            <div>
+                <button type="button" id="send">send</button>
+            </div>
+        </fieldset>
+    </form>
+
+    <!-- データ出力場所 -->
+    <ul id="output"></ul>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        // 日時をいい感じの形式にする関数
+        function convertTimestampToDatetime(timestamp) {
+            const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+            const Y = _d.getFullYear();
+            const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+            const d = _d.getDate().toString().padStart(2, '0');
+            const H = _d.getHours().toString().padStart(2, '0');
+            const i = _d.getMinutes().toString().padStart(2, '0');
+            const s = _d.getSeconds().toString().padStart(2, '0');
+            return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+        }
+
+
+
+
+    </script>
+    <!-- 以下にfirebaseのコードを貼り付けよう -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            serverTimestamp,
+            onSnapshot,
+            orderBy,
+            query
+        } from "https://www.gstatic.com/firebasejs/9.13.0/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBfUIT5OnuwDz3qRdu8w_FY0JeYR7kj_o8",
+            authDomain: "chat-homework-bec24.firebaseapp.com",
+            projectId: "chat-homework-bec24",
+            storageBucket: "chat-homework-bec24.appspot.com",
+            messagingSenderId: "301135684176",
+            appId: "1:301135684176:web:14f9cf14c79ec967546755"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        $("#send").on("click", async function () {
+            //入力内容を取得
+            const name = $("#name").val();
+            const phrase = $("#phrase").val();
+            const comment = $("#comment").val();
+
+            console.log(name)
+            console.log(phrase)
+
+            //取得した内容をオブジェクトに変換
+            const postData = {
+                name: name,
+                phrase: phrase,
+                comment: comment,
+                date: serverTimestamp(),
+            };
+
+            await addDoc(collection(db, "chat"), postData);
+            console.log(postData); //console結果→date: Xf {_methodName: 'serverTimestamp'}
+        });
+
+        const q = query(collection(db, "chat"), orderBy("date", "desc"));
+
+        onSnapshot(collection(db, "chat"), (querySnapshot) => {
+            console.log(querySnapshot);
+
+            const documentData = [];
+            querySnapshot.docs.forEach((doc) => {
+                //documentData配列に内容を追加(オブジェクトで突っ込む)
+                console.log(doc.data());//console結果は.seconds有だとdate: nullだが、無だと10桁の数字がある
+
+                const getData = {
+                    name: doc.data().name,
+                    phrase: doc.data().phrase,
+                    comment: doc.data().comment,
+
+                    date: doc.data().date,
+                };
+                documentData.push(getData);
+                console.log(documentData); //.secondsの有無に関わらずdate: null
+
+                const htmlElements = [];
+                documentData.forEach((document) => {
+                    console.log(document)
+                    htmlElements.push(`
+                    <p>
+          <li>name: ${document.name}</li>
+          <li>phrase: ${document.phrase}</li>
+          <li>comment: ${document.comment}</li>
+          <li>date: ${convertTimestampToDatetime(document.date.seconds)}</li>
+          </p>
+          `);
+                    //   「Uncaught TypeError: Cannot read properties of null (reading 'seconds’)」というエラーが出ます。
+                    // .secondsを外すとそのエラー表示は消えますが、西暦が3991年になります。（ただし月日と時間は合っている）
+
+                    console.log(htmlElements);
+                    $("#output").html(htmlElements);
+                });
+            });
+
+
+        });
+    </script>
